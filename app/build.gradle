@@ -2,7 +2,7 @@ group 'mint'
 
 //noinspection GroovyAssignabilityCheck
 dependencies {
-    compile rabbitMQ, postgresClient
+    compile rabbitMQ, postgresClient, jOptSimple, json
 
     testCompile junit
 }
@@ -25,6 +25,24 @@ jar {
             )
         }
     }
+}
+
+task bulkLoad(type: JavaExec)  {
+    def properties = project.getProperties()
+    def datafile = properties.get("datafile")
+    def configfile = properties.get("configfile")
+    def overwrite = properties.containsKey("overwrite")
+
+    if (datafile == null || configfile == null) {
+        println("Please specify datafile and configfile, and optionally overwrite")
+        return
+    }
+
+    println("datafile: $datafile\nconfigfile: $configfile\noverwrite?: $overwrite")
+
+    main = 'uk.gov.admin.Loader'
+    classpath = sourceSets.main.runtimeClasspath
+    args = ["--datafile=$datafile", "--configfile=$configfile", "${overwrite ? '--overwrite' : ''}"]
 }
 
 task stage(dependsOn: ['assemble'])
