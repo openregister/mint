@@ -1,12 +1,10 @@
 package uk.gov.admin;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLConnection;
+import java.util.stream.Stream;
 
 public class DataReader {
     public final String datafile;
@@ -26,6 +24,20 @@ public class DataReader {
         }
 
         return null;
+    }
+
+    public Stream<String> streamData() throws IOException {
+        final URI datafileURI;
+        try {
+            datafileURI = datafileToURI();
+        } catch (URISyntaxException e) {
+            throw new RuntimeException("Could not read the datafile: " + datafile, e);
+        }
+
+        final URLConnection urlConnection = datafileURI.toURL().openConnection();
+
+        final BufferedReader inr = new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
+        return inr.lines();
     }
 
     private String readDataFromURI(URI datafileURI) throws IOException {

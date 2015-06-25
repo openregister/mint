@@ -30,7 +30,7 @@ public class Application {
         String storeName = properties.getProperty("store.name");
         consoleLog("Connecting to Postgres database: " + pgConnectionString);
 
-        notToBeGcedMQConnector = new RabbitMQConnector(new LocalDataStoreApplication(new PostgresDataStore(pgConnectionString, storeName)));
+        notToBeGcedMQConnector = new RabbitMQConnector(properties, new LocalDataStoreApplication(new PostgresDataStore(pgConnectionString, storeName)));
         notToBeGcedMQConnector.connect(properties);
 
         consoleLog("Application started...");
