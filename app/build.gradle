@@ -4,7 +4,7 @@ group 'mint'
 dependencies {
     compile rabbitMQ, postgresClient, jOptSimple, json
 
-    testCompile junit
+    testCompile junit, mockito
 }
 
 
@@ -30,11 +30,12 @@ jar {
 task bulkLoad(type: JavaExec)  {
     def properties = project.getProperties()
     def datafile = properties.get("datafile")
+    def schemafile = properties.get("schemafile")
     def configfile = properties.get("configfile")
     def overwrite = properties.containsKey("overwrite")
 
     if (datafile == null || configfile == null) {
-        println("Please specify datafile and configfile, and optionally overwrite")
+        println("Usage: gradle bulkLoad [--overwrite] --configfile=<config.properties> --schemafile=<dataschema.json> --datafile=<loadfile.json>")
         return
     }
 
@@ -42,5 +43,5 @@ task bulkLoad(type: JavaExec)  {
 
     main = 'uk.gov.admin.Loader'
     classpath = sourceSets.main.runtimeClasspath
-    args = ["--datafile=$datafile", "--configfile=$configfile", "${overwrite ? '--overwrite' : ''}"]
+    args = ["--schemafile=$schemafile", "--datafile=$datafile", "--configfile=$configfile", "${overwrite ? '--overwrite' : ''}"]
 }

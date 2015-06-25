@@ -1,50 +1,85 @@
 package uk.gov.admin;
 
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.io.*;
-import java.net.URL;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.Map;
+import java.util.Properties;
 import java.util.stream.Collectors;
 
 class LoaderArgsParser {
-    private final static Logger log = LoggerFactory.getLogger(LoaderArgsParser.class);
+    private static final String usageMessage =
+            "Usage: java Loader [--overwrite] --configfile=<config.properties> --schemafile=<dataschema.json> --datafile=<loadfile.json>";
 
-    OptionSet parseArgs(String[] args) {
+    LoaderArgs parseArgs(String[] args) {
+
+        final OptionSet options = optionParser().parse(args);
+        if (!(options.has("datafile") && options.has("configfile") && options.has("schemafile"))) {
+            throw new IllegalArgumentException(usageMessage);
+        }
+
+        return optionsToLoaderArgs(options);
+    }
+
+    private OptionParser optionParser() {
         OptionParser parser = new OptionParser();
+        parser.accepts("schemafile", "File containing the schema that describes the data format.").withRequiredArg();
         parser.accepts("datafile", "File containing data to load. Currently only JSON is accepted.").withRequiredArg();
         parser.accepts("configfile", "File containing configuration in regular java.util.Properties format.").withRequiredArg();
         parser.accepts("overwrite", "Overwrite existing data.").withOptionalArg();
 
-        final OptionSet options = parser.parse(args);
-        if (!(options.has("datafile") && options.has("configfile"))) {
-            throw new IllegalArgumentException(Loader.usageMessage);
-        }
-
-        return options;
+        return parser;
     }
 
-    // TODO: This should parse the Json text into JsonNode[]
-    String parseJson(InputStream in) {
-        try (InputStreamReader inr = new InputStreamReader(in);
-             BufferedReader inb = new BufferedReader(inr)) {
-            return inb.lines().collect(Collectors.joining(""));
+    private LoaderArgs optionsToLoaderArgs(OptionSet options) {
+        final String datafile = (String) options.valueOf("datafile");
+        final String configfile = (String) options.valueOf("configfile");
+        final Boolean overwrite = options.has("overwrite");
+
+        DataReader reader = new DataReader(datafile);
+
+        Map<String, Object> config;
+        try(final FileInputStream configInStream = new FileInputStream(configfile)) {
+            final Properties configProps = new Properties();
+            configProps.load(configInStream);
+
+            config = configProps.entrySet().stream()
+                    .collect(Collectors.toMap(e -> (String) e.getKey(), Map.Entry::getValue));
         } catch (IOException e) {
-            log.error("Error occurred reading the datafile", e);
-            throw new RuntimeException(e);
+            throw new RuntimeException("Error occurred loading configfile: " + configfile, e);
+        }
+
+        return new LoaderArgs(validateDataInputAsJson(reader.data()), config, overwrite);
+    }
+
+    private String validateDataInputAsJson(String in) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            final JsonNode jsonNode = mapper.readValue(in, JsonNode.class);
+
+            return jsonNode.toString();
+        } catch (JsonParseException | JsonMappingException e) {
+            throw new RuntimeException("Error occurred parsing the json datafile - are you sure it is valid JSON?", e);
+        } catch (IOException e) {
+            throw new RuntimeException("Error occurred reading the datafile", e);
         }
     }
 
-    // Try to parse before pushing onto queue
-    public InputStream process(String datafile) throws IOException {
-        if (datafile.startsWith("/")) { // Absolute file path
-            return new FileInputStream(new File(datafile));
-        } else if (datafile.startsWith("http://")) { // URL
-            return new URL(datafile).openStream();
-        } else { // File in current dir
-            return new FileInputStream(new File(datafile));
+    public class LoaderArgs {
+        public final String data;
+        public final Map<String, Object> config;
+        public final boolean overwrite;
+
+        public LoaderArgs(String data, Map<String, Object> config, boolean overwrite) {
+            this.data = data;
+            this.config = config;
+            this.overwrite = overwrite;
         }
     }
 }

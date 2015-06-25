@@ -1,9 +1,6 @@
-{
-  "schema": {},
-  "payload": [
-    {
-      "address": "0000001",
-      "postcode": "01010101"
-    }
-  ]
-}
+[
+  {
+    "address": "0000001",
+    "postcode": "01010101"
+  }
+]
