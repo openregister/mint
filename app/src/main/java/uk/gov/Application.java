@@ -1,6 +1,8 @@
 package uk.gov;
 
 import com.google.common.base.Strings;
+import uk.gov.mint.RabbitMQConnector;
+import uk.gov.store.LocalDataStoreApplication;
 import uk.gov.store.PostgresDataStore;
 
 import java.io.File;
@@ -25,9 +27,10 @@ public class Application {
         properties.putAll(propertiesMap);
 
         String pgConnectionString = properties.getProperty("postgres.connection.string");
+        String storeName = properties.getProperty("store.name");
         consoleLog("Connecting to Postgres database: " + pgConnectionString);
 
-        notToBeGcedMQConnector = new RabbitMQConnector(new PostgresDataStore(pgConnectionString));
+        notToBeGcedMQConnector = new RabbitMQConnector(new LocalDataStoreApplication(new PostgresDataStore(pgConnectionString, storeName)));
         notToBeGcedMQConnector.connect(properties);
 
         consoleLog("Application started...");
@@ -38,7 +41,7 @@ public class Application {
     private static InputStream configurationPropertiesStream(String fileName) throws IOException {
         if (Strings.isNullOrEmpty(fileName)) {
             consoleLog("Configuration properties file not provided, using default application.properties file");
-            return Application.class.getResource("application.properties").openStream();
+            return Application.class.getResourceAsStream("/application.properties");
         } else {
             consoleLog("Loading properties file: " + fileName);
             return new FileInputStream(new File(fileName));

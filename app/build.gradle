@@ -45,3 +45,5 @@ task bulkLoad(type: JavaExec)  {
     classpath = sourceSets.main.runtimeClasspath
     args = ["--schemafile=$schemafile", "--datafile=$datafile", "--configfile=$configfile", "${overwrite ? '--overwrite' : ''}"]
 }
+
+task stage(dependsOn: ['assemble'])
