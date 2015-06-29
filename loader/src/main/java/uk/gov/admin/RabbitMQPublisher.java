@@ -1,32 +1,30 @@
-package uk.gov.mint;
+package uk.gov.admin;
 
-import com.rabbitmq.client.*;
-import uk.gov.integration.DataStoreApplication;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.ConnectionFactory;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
-import java.util.Collections;
+import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 
-public class RabbitMQConnector implements AutoCloseable {
-    private final DataStoreApplication dataStoreApplication;
+public class RabbitMQPublisher implements AutoCloseable {
     private final String connectionString;
-    private final String queue;
     private final String exchange;
     private final String routingKey;
 
     private Channel channel;
 
-    public RabbitMQConnector(Properties configuration, DataStoreApplication dataStoreApplication) {
+    public RabbitMQPublisher(Properties configuration) {
         connectionString = configuration.getProperty("rabbitmq.connection.string");
-        queue = configuration.getProperty("rabbitmq.queue");
         exchange = configuration.getProperty("rabbitmq.exchange");
         routingKey = configuration.getProperty("rabbitmq.exchange.routing.key");
 
-        this.dataStoreApplication = dataStoreApplication;
 
         try {
             channel = prepareConnection();
@@ -35,18 +33,15 @@ public class RabbitMQConnector implements AutoCloseable {
         }
     }
 
-    public void connect(Properties configuration) {
+    public void publish(List<String> listOfData) {
         try {
-            AMQP.Exchange.DeclareOk declareExchange = channel.exchangeDeclare(exchange, "direct");
-            AMQP.Queue.DeclareOk declareQueue = channel.queueDeclare(queue, true, false, false, Collections.<String, Object>emptyMap());
-            AMQP.Queue.BindOk bindOk = channel.queueBind(queue, exchange, routingKey);
-
-            Consumer consumer = new MessageHandler(channel, dataStoreApplication);
-            channel.basicConsume(queue, consumer);
+            final String batchData = listOfData.stream().collect(Collectors.joining(","));
+            final String batchDataDocument = "[" + batchData + "]";
+            channel.basicPublish(exchange, routingKey, null, batchDataDocument.getBytes());
         } catch (NullPointerException e) {
             throw new RuntimeException("Did you call prepareConnection?", e);
         } catch (Throwable t) {
-            throw new RuntimeException(t);
+            throw new RuntimeException("Error occurred publishing datafile to queue", t);
         }
     }
 
