@@ -40,7 +40,6 @@ public class FunctionalTest {
     }
 
     @Test
-    @Ignore("Not working - not wired into the database?")
     public void checkMessageIsConsumedAndStoredInDatabase() throws Exception {
 
         ConnectionFactory factory = new ConnectionFactory();
