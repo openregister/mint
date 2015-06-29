@@ -3,11 +3,14 @@ package uk.gov.mint;
 import com.rabbitmq.client.*;
 import uk.gov.integration.DataStoreApplication;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.net.URISyntaxException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Collections;
+import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.TimeoutException;
 
@@ -71,5 +74,17 @@ public class RabbitMQConnector implements AutoCloseable {
     public void close() throws Exception {
         channel.close();
         channel.getConnection().close();
+    }
+
+    public void publish(List<String> listOfData) {
+        try(ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        ObjectOutputStream out = new ObjectOutputStream(outputStream)) {
+            out.writeObject(listOfData);
+            channel.basicPublish(exchange, routingKey, null, outputStream.toByteArray());
+        } catch (NullPointerException e) {
+            throw new RuntimeException("Did you call prepareConnection?", e);
+        } catch (Throwable t) {
+            throw new RuntimeException("Error occurred publishing datafile to queue", t);
+        }
     }
 }
