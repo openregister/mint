@@ -1,7 +1,6 @@
 package uk.gov.admin;
 
 import javaslang.collection.Stream;
-import uk.gov.mint.RabbitMQConnector;
 
 import java.util.Properties;
 
@@ -18,20 +17,10 @@ public class Loader {
         new Loader(loaderArgs).load();
     }
 
-//    public void load() {
-//        Properties props = new Properties();
-//        props.putAll(loaderArgs.config);
-//        try (RabbitMQConnector connector = new RabbitMQConnector(props, null)) {
-//            loaderArgs.data.parallel().forEach(connector::publish);
-//        } catch (Throwable t) {
-//            throw new RuntimeException("Error occurred publishing datafile to queue", t);
-//        }
-//    }
-
     public void load() {
         Properties props = new Properties();
         props.putAll(loaderArgs.config);
-        try (RabbitMQConnector connector = new RabbitMQConnector(props, null)) {
+        try (RabbitMQPublisher connector = new RabbitMQPublisher(props)) {
             final Stream<String> collect = loaderArgs.data.collect(Stream.<String>collector());
             collect.grouped(1000).forEach(g -> {
                 connector.publish(g.toJavaList());

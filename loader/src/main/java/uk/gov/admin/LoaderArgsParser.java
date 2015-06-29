@@ -1,9 +1,5 @@
 package uk.gov.admin;
 
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 
@@ -27,7 +23,7 @@ public class LoaderArgsParser {
 
             return optionsToLoaderArgs(options);
         } catch (Exception e) {
-            throw new RuntimeException(usageMessage);
+            throw new RuntimeException(usageMessage, e);
         }
     }
 
@@ -59,19 +55,6 @@ public class LoaderArgsParser {
             return new LoaderArgs(reader.streamData(), config, overwrite);
         } catch (IOException e) {
             throw new RuntimeException("Error occurred loading configfile: " + configfile, e);
-        }
-    }
-
-    private String validateDataInputAsJson(String in) {
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            final JsonNode jsonNode = mapper.readValue(in, JsonNode.class);
-
-            return jsonNode.toString();
-        } catch (JsonParseException | JsonMappingException e) {
-            throw new RuntimeException("Error occurred parsing the json datafile - are you sure it is valid JSON?", e);
-        } catch (IOException e) {
-            throw new RuntimeException("Error occurred reading the datafile", e);
         }
     }
 
