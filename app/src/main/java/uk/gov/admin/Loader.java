@@ -18,6 +18,16 @@ public class Loader {
         new Loader(loaderArgs).load();
     }
 
+//    public void load() {
+//        Properties props = new Properties();
+//        props.putAll(loaderArgs.config);
+//        try (RabbitMQConnector connector = new RabbitMQConnector(props, null)) {
+//            loaderArgs.data.parallel().forEach(connector::publish);
+//        } catch (Throwable t) {
+//            throw new RuntimeException("Error occurred publishing datafile to queue", t);
+//        }
+//    }
+
     public void load() {
         Properties props = new Properties();
         props.putAll(loaderArgs.config);

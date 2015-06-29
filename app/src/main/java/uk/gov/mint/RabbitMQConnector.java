@@ -9,10 +9,13 @@ import java.io.ObjectOutputStream;
 import java.net.URISyntaxException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 public class RabbitMQConnector implements AutoCloseable {
     private final DataStoreApplication dataStoreApplication;
@@ -54,8 +57,14 @@ public class RabbitMQConnector implements AutoCloseable {
     }
 
     public void publish(String data) {
+        publish(Collections.singletonList(data));
+    }
+
+    public void publish(List<String> listOfData) {
         try {
-            channel.basicPublish(exchange, routingKey, null, data.getBytes());
+            final String batchData = listOfData.stream().collect(Collectors.joining(","));
+            final String batchDataDocument = "[" + batchData + "]";
+            channel.basicPublish(exchange, routingKey, null, batchDataDocument.getBytes());
         } catch (NullPointerException e) {
             throw new RuntimeException("Did you call prepareConnection?", e);
         } catch (Throwable t) {
@@ -74,17 +83,5 @@ public class RabbitMQConnector implements AutoCloseable {
     public void close() throws Exception {
         channel.close();
         channel.getConnection().close();
-    }
-
-    public void publish(List<String> listOfData) {
-        try(ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        ObjectOutputStream out = new ObjectOutputStream(outputStream)) {
-            out.writeObject(listOfData);
-            channel.basicPublish(exchange, routingKey, null, outputStream.toByteArray());
-        } catch (NullPointerException e) {
-            throw new RuntimeException("Did you call prepareConnection?", e);
-        } catch (Throwable t) {
-            throw new RuntimeException("Error occurred publishing datafile to queue", t);
-        }
     }
 }
