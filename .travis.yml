@@ -24,12 +24,12 @@ deploy:
   region: eu-west-1
   skip_cleanup: true
   on: &2
-    branch: master
+    branch: mint2-app-test
     condition: $DEPLOY=true
 - provider: codedeploy
   access_key_id: AKIAI5JSOOUBYFGE7NEA
   secret_access_key: *1
-  bucket: mint.app.artifacts
+  bucket: mint2.app.artifacts
   key: mint-$TRAVIS_BRANCH-$TRAVIS_BUILD_NUMBER-$TRAVIS_COMMIT.zip
   bundle_type: zip
   application: mint-app
