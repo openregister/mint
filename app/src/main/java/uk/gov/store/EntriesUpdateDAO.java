@@ -10,10 +10,10 @@ import java.util.List;
 public interface EntriesUpdateDAO {
     String tableName = "entries";
 
-    @SqlUpdate("CREATE TABLE IF NOT EXISTS " + tableName + " (ID SERIAL PRIMARY KEY, ENTRY BYTEA)")
+    @SqlUpdate("create table if not exists " + tableName + " (id serial primary key, entry bytea)")
     void ensureTableExists();
 
-    @SqlBatch("INSERT INTO " + tableName + "(ENTRY) values(:messages)")
+    @SqlBatch("insert into " + tableName + " (entry) values(:messages)")
     @BatchChunkSize(1000)
     void add(@Bind("messages") List<byte[]> messages);
 }
