@@ -7,6 +7,8 @@ import org.apache.commons.lang3.StringUtils;
 import uk.gov.register.*;
 import uk.gov.register.datatype.Datatype;
 
+import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 
 public class EntryValidator {
@@ -22,11 +24,36 @@ public class EntryValidator {
     public void validateEntry(String registerName, JsonNode inputEntry) throws EntryValidationException {
         Register register = registersConfiguration.getRegister(registerName);
 
+        validateNoEmptyFields(inputEntry);
+
         validateFields(inputEntry, register);
 
         validatePrimaryKeyExists(inputEntry, register.getRegisterName());
 
         validateFieldsValue(inputEntry);
+    }
+
+    private void validateNoEmptyFields(JsonNode inputEntry) {
+        Iterator<Map.Entry<String, JsonNode>> it = inputEntry.fields();
+        while (it.hasNext()) {
+            Map.Entry<String, JsonNode> keyValue = it.next();
+            if (keyValue.getValue().isValueNode()) {
+                if (keyValue.getValue().isTextual() && keyValue.getValue().textValue().isEmpty()) {
+                    throw new EntryValidationException("Empty or blank fields are not allowed", inputEntry);
+                }
+            } else if (keyValue.getValue().isContainerNode()) {
+                validateNoEmptyFields(keyValue.getValue());
+            }
+        }
+
+        // Parse any arrays (also reparses containers due to Jackson limitations)
+        if (inputEntry.isContainerNode()) {
+            Iterator<JsonNode> it2 = inputEntry.elements();
+            while (it2.hasNext()) {
+                JsonNode subnode = it2.next();
+                validateNoEmptyFields(subnode);
+            }
+        }
     }
 
     private void validatePrimaryKeyExists(JsonNode inputEntry, String registerName) throws EntryValidationException {
