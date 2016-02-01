@@ -62,7 +62,7 @@ public class EntryValidatorTest {
 
     @Test
     public void validateEntry_throwsValidationException_givenEntryContainsUnknownFields() throws IOException {
-        String jsonString = "{\"register\":\"aregister\",\"text\":5,\"key1\":\"value\",\"key2\":\"value\"}";
+        String jsonString = "{\"register\":\"aregister\",\"text\":\"5\",\"key1\":\"value\",\"key2\":\"value\"}";
         JsonNode jsonNode = nodeOf(jsonString);
         try {
             entryValidator.validateEntry("register", jsonNode);
@@ -107,5 +107,18 @@ public class EntryValidatorTest {
 
     private JsonNode nodeOf(String jsonString) throws IOException {
         return objectMapper.readValue(jsonString, JsonNode.class);
+    }
+
+    @Test
+    public void validateEntry_throwsValidationException_whenEmptyFieldsPresent() throws IOException {
+        String jsonString = "{\"register\":\"aregister\",\"text\":\"\"}";
+        JsonNode jsonNode = nodeOf(jsonString);
+        try {
+            entryValidator.validateEntry("register", jsonNode);
+            fail("Must not execute this statement");
+        } catch (EntryValidationException e) {
+            assertThat(e.getMessage(), equalTo("Empty or blank fields are not allowed"));
+            assertThat(e.getEntry().toString(), equalTo(jsonString));
+        }
     }
 }
