@@ -3,6 +3,8 @@ package uk.gov.mint;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.dropwizard.client.JerseyClientBuilder;
 import io.dropwizard.setup.Environment;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import uk.gov.MintConfiguration;
 
 import javax.ws.rs.client.Client;
@@ -13,9 +15,10 @@ import javax.ws.rs.core.Response;
 import java.util.List;
 
 public class CTHandler implements Loader {
+    public static final Logger LOGGER = LoggerFactory.getLogger(CTHandler.class);
+
     private final String ctserver;
     private final Client client;
-    private final CanonicalJsonMapper canonicalJsonMapper;
 
     public CTHandler(MintConfiguration configuration, Environment environment, final String appName) {
         this.ctserver = configuration.getCTServer().get();
@@ -23,8 +26,6 @@ public class CTHandler implements Loader {
         this.client = new JerseyClientBuilder(environment)
                 .using(configuration.getJerseyClientConfiguration())
                 .build(appName);
-
-        this.canonicalJsonMapper = new CanonicalJsonMapper();
     }
 
     @Override
@@ -36,7 +37,10 @@ public class CTHandler implements Loader {
                     .post(Entity.entity(singleEntry, MediaType.APPLICATION_JSON), Response.class);
             try {
                 if (response.getStatusInfo().getFamily() != Response.Status.Family.SUCCESSFUL) {
-                    throw new CTException(response.readEntity(String.class));
+                    String body = response.readEntity(String.class);
+                    LOGGER.debug(String.format("CT server error: %d '%s'", response.getStatus(), body));
+                    LOGGER.debug(String.format("Sent payload: '%s'", singleEntry));
+                    throw new CTException(body);
                 }
             } finally {
                 response.close();
