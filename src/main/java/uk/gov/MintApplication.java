@@ -6,8 +6,10 @@ import io.dropwizard.auth.AuthDynamicFeature;
 import io.dropwizard.auth.basic.BasicCredentialAuthFilter;
 import io.dropwizard.configuration.EnvironmentVariableSubstitutor;
 import io.dropwizard.configuration.SubstitutingSourceProvider;
+import io.dropwizard.db.DataSourceFactory;
 import io.dropwizard.jdbi.DBIFactory;
 import io.dropwizard.jersey.setup.JerseyEnvironment;
+import io.dropwizard.migrations.MigrationsBundle;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import org.skife.jdbi.v2.DBI;
@@ -40,11 +42,20 @@ public class MintApplication extends Application<MintConfiguration> {
         bootstrap.setConfigurationSourceProvider(
                 new SubstitutingSourceProvider(bootstrap.getConfigurationSourceProvider(),
                         new EnvironmentVariableSubstitutor(false)
-                ));
+                )
+        );
+
+        bootstrap.addBundle(new MigrationsBundle<MintConfiguration>() {
+            @Override
+            public DataSourceFactory getDataSourceFactory(MintConfiguration configuration) {
+                return configuration.getDatabase();
+            }
+        });
     }
 
     @Override
     public void run(MintConfiguration configuration, Environment environment) throws Exception {
+
         DBIFactory dbiFactory = new DBIFactory();
         DBI jdbi = dbiFactory.build(environment, configuration.getDatabase(), "postgres");
 
@@ -66,11 +77,11 @@ public class MintApplication extends Application<MintConfiguration> {
 
         configuration.getAuthenticator().build()
                 .ifPresent(authenticator ->
-                        jersey.register(new AuthDynamicFeature(
-                                new BasicCredentialAuthFilter.Builder<User>()
-                                        .setAuthenticator(authenticator)
-                                        .buildAuthFilter()
-                        ))
+                                jersey.register(new AuthDynamicFeature(
+                                        new BasicCredentialAuthFilter.Builder<User>()
+                                                .setAuthenticator(authenticator)
+                                                .buildAuthFilter()
+                                ))
                 );
 
         if (configuration.cloudWatchEnvironmentName().isPresent()) {
@@ -79,5 +90,3 @@ public class MintApplication extends Application<MintConfiguration> {
         }
     }
 }
-
-
